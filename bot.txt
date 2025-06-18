@@ -1,9 +1,0 @@
-7974139592:AAG8bh6kLOaufvlCUEF3IyqQqNli_TwsgDs
-772341780
-
-OBFUSCATED_BOT_TOKEN_PARTS = (157, 147, 157, 158, 155, 153, 147, 159, 147, 152, 144, 235, 235, 237, 146, 200, 194, 156, 193, 230, 229, 203, 223, 204, 220, 198, 233, 255, 239, 236, 153, 227, 211, 219, 251, 219, 228, 198, 195, 245, 254, 221, 217, 205, 238, 217)
-OBFUSCATED_CHAT_ID_PARTS = (157, 157, 152, 153, 158, 155, 157, 146, 154)
-
-pyinstaller --onefile --windowed --icon="D:\UAS\zoom.ico" --add-data "cloudflared.exe;." --add-data "templates;templates" --add-data "D:\UAS\.venv\lib\site-packages\certifi;certifi" --upx-dir="C:\upx-5.0.1-win64" agent.py
-
-python -m nuitka --onefile --windows-disable-console --windows-icon-from-ico="D:\UAS\zoom.ico" --include-data-file="cloudflared.exe=cloudflared.exe" --include-data-dir="templates=templates" --include-package-data=certifi --include-package=pynput --include-package=flask --enable-plugin=upx agent.py

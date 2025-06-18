@@ -1,0 +1,6 @@
+requests
+Pillow
+psutil
+pynput
+wmi
+pycryptodome

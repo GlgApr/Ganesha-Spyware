@@ -1,0 +1,28 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build and distribution artifacts
+build/
+dist/
+*.spec
+*.onefile-build/
+*.build/
+*.dist/
+
+# User-specific files and folders
+*.backup
+SS/
+
+# IDE/Editor specific
+.vscode/
+.idea/
+
+# Windows specific
+Thumbs.db

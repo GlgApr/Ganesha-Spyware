@@ -10,6 +10,13 @@
 
 ---
 
+<div align="center">
+  <a href="https://youtu.be/6tfKwmIw0gQ">
+    <img src="https://img.youtube.com/vi/6tfKwmIw0gQ/maxresdefault.jpg" alt="Demo Video" width="600">
+  </a>
+  <p><em>📺 Klik untuk menonton demo</em></p>
+</div>
+
 ## 1. Project Overview
 
 This project is a case study in implementing an **advanced Spyware with an architecture extensible into a RAT (Remote Administration Tool)**. Developed in Python, this tool is designed to mimic the behavior and sophistication of modern malware. Its focus extends beyond standard monitoring functionalities to include a multi-layered implementation of **evasion techniques** aimed at bypassing detection by security software and automated analysis platforms.
